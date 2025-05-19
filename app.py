@@ -299,8 +299,7 @@ def generate_pdf_report(result_id):
     title_style.alignment = 1  # Center
     elements.append(Paragraph("LAPORAN HASIL ANALISIS KECANDUAN GAME ONLINE", title_style))
     elements.append(Paragraph("Sistem Pakar HEROin", styles['Heading2']))
-    elements.append(Paragraph(" ", styles['Normal']))  # Spasi
-    
+    elements.append(Paragraph(" ", styles['Normal']))      
     # Informasi Pengguna
     elements.append(Paragraph("Informasi Pengguna:", styles['Heading3']))
     
@@ -319,7 +318,7 @@ def generate_pdf_report(result_id):
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
     ]))
     elements.append(user_table)
-    elements.append(Paragraph(" ", styles['Normal']))  # Spasi
+    elements.append(Paragraph(" ", styles['Normal']))  
     
     # Hasil Analisis
     elements.append(Paragraph("Hasil Analisis:", styles['Heading3']))
@@ -337,7 +336,7 @@ def generate_pdf_report(result_id):
         ('ALIGN', (0, 0), (0, -1), 'LEFT'),
     ]))
     elements.append(result_table)
-    elements.append(Paragraph(" ", styles['Normal']))  # Spasi
+    elements.append(Paragraph(" ", styles['Normal']))  
     
     # Detail Jawaban
     elements.append(Paragraph("Detail Jawaban:", styles['Heading3']))
@@ -371,7 +370,7 @@ def generate_pdf_report(result_id):
     elements.append(answer_table)
     
     # Tanggal dan waktu cetak
-    elements.append(Paragraph(" ", styles['Normal']))  # Spasi
+    elements.append(Paragraph(" ", styles['Normal']))  
     elements.append(Paragraph(f"Dicetak pada: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}", styles['Normal']))
     
     # Build PDF
@@ -763,10 +762,10 @@ def download_all_reports():
         
         # Judul
         title_style = styles['Heading1']
-        title_style.alignment = 1  # Center
+        title_style.alignment = 1  
         elements.append(Paragraph("RINGKASAN HASIL ANALISIS KECANDUAN GAME ONLINE", title_style))
         elements.append(Paragraph("Sistem Pakar HEROin", styles['Heading2']))
-        elements.append(Paragraph(" ", styles['Normal']))  # Spasi
+        elements.append(Paragraph(" ", styles['Normal']))  
         
         # Tabel ringkasan
         summary_data = [['No', 'Nama', 'Program Studi', 'Angkatan', 'Nilai CF', 'Diagnosis']]
