@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Script untuk memeriksa dan debugging database
-Jalankan script ini untuk memastikan database sudah benar
-"""
-
 import mysql.connector
 from mysql.connector import Error
 

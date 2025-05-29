@@ -33,7 +33,6 @@ class Impact(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=False)
     
-    # Relationships
     questions = db.relationship('Question', backref='impact', lazy=True)
 
 class Hypothesis(db.Model):
