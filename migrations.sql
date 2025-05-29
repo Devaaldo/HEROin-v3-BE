@@ -1,5 +1,5 @@
--- migrations.sql
--- Script untuk membuat database dan tabel untuk sistem pakar HEROin
+-- migrations_updated.sql
+-- Script untuk membuat database dan tabel untuk sistem pakar HEROin (Updated)
 
 -- Buat database
 CREATE DATABASE IF NOT EXISTS heroin_db;
@@ -17,28 +17,57 @@ CREATE TABLE IF NOT EXISTS user (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Buat tabel hypothesis
+-- Buat tabel hypothesis (Updated)
 CREATE TABLE IF NOT EXISTS hypothesis (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(10) NOT NULL,
-    description TEXT NOT NULL
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    cf_threshold_min FLOAT NOT NULL,
+    cf_threshold_max FLOAT NOT NULL
 );
 
--- Buat tabel question
-CREATE TABLE IF NOT EXISTS question (
+-- Buat tabel gejala/symptoms (New)
+CREATE TABLE IF NOT EXISTS symptom (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(10) NOT NULL,
+    description TEXT NOT NULL,
+    cf_expert FLOAT NOT NULL -- Bobot dari pakar
+);
+
+-- Buat tabel rules (New)
+CREATE TABLE IF NOT EXISTS rule (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hypothesis_id INT NOT NULL,
-    code VARCHAR(10) NOT NULL,
-    text TEXT NOT NULL,
+    rule_name VARCHAR(100) NOT NULL,
+    description TEXT,
     FOREIGN KEY (hypothesis_id) REFERENCES hypothesis(id) ON DELETE CASCADE
 );
 
--- Buat tabel result
+-- Buat tabel rule_symptoms (New) - Many to many relationship
+CREATE TABLE IF NOT EXISTS rule_symptom (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rule_id INT NOT NULL,
+    symptom_id INT NOT NULL,
+    FOREIGN KEY (rule_id) REFERENCES rule(id) ON DELETE CASCADE,
+    FOREIGN KEY (symptom_id) REFERENCES symptom(id) ON DELETE CASCADE
+);
+
+-- Buat tabel question (Updated to link with symptoms)
+CREATE TABLE IF NOT EXISTS question (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    symptom_id INT NOT NULL,
+    text TEXT NOT NULL,
+    FOREIGN KEY (symptom_id) REFERENCES symptom(id) ON DELETE CASCADE
+);
+
+-- Buat tabel result (Updated)
 CREATE TABLE IF NOT EXISTS result (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     hypothesis_id INT NOT NULL,
     cf_value FLOAT NOT NULL,
+    cf_percentage FLOAT NOT NULL,
     diagnosis TEXT NOT NULL,
     recommendation TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -46,60 +75,97 @@ CREATE TABLE IF NOT EXISTS result (
     FOREIGN KEY (hypothesis_id) REFERENCES hypothesis(id) ON DELETE CASCADE
 );
 
--- Buat tabel answer
+-- Buat tabel answer (Updated to link with symptoms)
 CREATE TABLE IF NOT EXISTS answer (
     id INT AUTO_INCREMENT PRIMARY KEY,
     result_id INT NOT NULL,
-    question_id INT NOT NULL,
-    cf_value FLOAT NOT NULL,
+    symptom_id INT NOT NULL,
+    cf_user FLOAT NOT NULL, -- Nilai dari user (0.0 - 1.0)
+    cf_combined FLOAT NOT NULL, -- CF_expert * CF_user
     FOREIGN KEY (result_id) REFERENCES result(id) ON DELETE CASCADE,
-    FOREIGN KEY (question_id) REFERENCES question(id) ON DELETE CASCADE
+    FOREIGN KEY (symptom_id) REFERENCES symptom(id) ON DELETE CASCADE
 );
 
--- Insert data awal untuk hipotesis
-INSERT INTO hypothesis (code, description) VALUES
-('H1', 'Dampak negatif terhadap kesehatan fisik (gangguan tidur, sakit kepala, mata lelah)'),
-('H2', 'Dampak negatif terhadap kesehatan mental (kecemasan, depresi, mood swing)'),
-('H3', 'Dampak negatif terhadap performa akademik (penurunan nilai, absensi)'),
-('H4', 'Dampak negatif terhadap hubungan sosial (isolasi, konflik dengan teman/keluarga)'),
-('H5', 'Dampak negatif terhadap manajemen waktu (prokrastinasi, kehilangan waktu produktif)');
+-- Insert data hypothesis
+INSERT INTO hypothesis (code, name, description, cf_threshold_min, cf_threshold_max) VALUES
+('P1', 'Kecanduan Ringan', 'Kecanduan game online tingkat ringan dengan durasi bermain 2-4 jam/hari', 0.40, 0.60),
+('P2', 'Kecanduan Sedang', 'Kecanduan game online tingkat sedang dengan durasi bermain 4-8 jam/hari', 0.61, 0.80),
+('P3', 'Kecanduan Berat', 'Kecanduan game online tingkat berat dengan durasi bermain >8 jam/hari', 0.81, 1.00);
 
--- Insert data awal untuk pertanyaan hipotesis 1
-INSERT INTO question (hypothesis_id, code, text) VALUES
-(1, 'Q1-1', 'Saya sering merasa sakit kepala setelah bermain game online dalam waktu lama'),
-(1, 'Q1-2', 'Jam tidur saya terganggu karena bermain game online hingga larut malam'),
-(1, 'Q1-3', 'Mata saya sering terasa lelah dan kering setelah bermain game online'),
-(1, 'Q1-4', 'Saya merasakan nyeri pada pergelangan tangan atau jari setelah bermain game dalam waktu lama'),
-(1, 'Q1-5', 'Saya sering melewatkan waktu makan karena terlalu fokus bermain game online');
+-- Insert data symptoms
+INSERT INTO symptom (code, description, cf_expert) VALUES
+('G1', 'Keasyikan berlebihan dengan game (selalu memikirkan game bahkan saat tidak bermain)', 0.9),
+('G2', 'Tanda-tanda withdrawal (gelisah, marah, cemas saat tidak bermain)', 0.8),
+('G3', 'Toleransi (perlu waktu bermain semakin lama untuk puas)', 0.7),
+('G4', 'Gagal mengontrol durasi bermain meski sudah berusaha', 0.8),
+('G5', 'Kehilangan minat pada hobi/aktivitas sebelumnya', 0.6),
+('G6', 'Terus bermain meski tahu konsekuensi negatif (akademik, kesehatan, hubungan)', 0.9),
+('G7', 'Berbohong tentang durasi bermain ke keluarga/teman', 0.7),
+('G8', 'Menggunakan game untuk melarikan diri dari mood negatif (stres, depresi)', 0.8),
+('G9', 'Mengorbankan hubungan/pekerjaan/studi demi game', 0.9),
+('G10', 'Preferensi interaksi sosial di game daripada dunia nyata', 0.6),
+('G11', 'Masalah fisik (kelelahan, sakit mata, kurang tidur, lupa makan)', 0.5),
+('G12', 'Prestasi akademik/kinerja menurun', 0.7);
 
--- Insert data awal untuk pertanyaan hipotesis 2
-INSERT INTO question (hypothesis_id, code, text) VALUES
-(2, 'Q2-1', 'Saya merasa cemas ketika tidak bisa bermain game online'),
-(2, 'Q2-2', 'Mood saya berubah-ubah (mudah marah/sedih) ketika kalah dalam game'),
-(2, 'Q2-3', 'Saya kesulitan berkonsentrasi pada kegiatan lain karena terus memikirkan game'),
-(2, 'Q2-4', 'Saya merasa tertekan ketika tidak mencapai target dalam game'),
-(2, 'Q2-5', 'Saya sering merasa tidak berharga di dunia nyata dibandingkan dengan pencapaian di game');
+-- Insert rules untuk kecanduan ringan (P1)
+INSERT INTO rule (hypothesis_id, rule_name, description) VALUES
+(1, 'Rule P1-1', 'IF P1 THEN G1 AND G5'),
+(1, 'Rule P1-2', 'IF P1 THEN G1 AND G5 AND G10'),
+(1, 'Rule P1-3', 'IF P1 THEN G1 AND G5 AND G10 AND G3');
 
--- Insert data awal untuk pertanyaan hipotesis 3
-INSERT INTO question (hypothesis_id, code, text) VALUES
-(3, 'Q3-1', 'Nilai akademik saya menurun sejak saya bermain game online secara intensif'),
-(3, 'Q3-2', 'Saya sering tidak mengerjakan tugas kuliah karena bermain game online'),
-(3, 'Q3-3', 'Saya pernah tidak masuk kuliah karena bermain game online semalaman'),
-(3, 'Q3-4', 'Saya sulit fokus saat kuliah karena memikirkan strategi atau level dalam game'),
-(3, 'Q3-5', 'Saya lebih memilih bermain game daripada belajar untuk ujian');
+-- Insert rules untuk kecanduan sedang (P2)
+INSERT INTO rule (hypothesis_id, rule_name, description) VALUES
+(2, 'Rule P2-1', 'IF P2 THEN G2 AND G3 AND G4'),
+(2, 'Rule P2-2', 'IF P2 THEN G2 AND G3 AND G4 AND G7'),
+(2, 'Rule P2-3', 'IF P2 THEN G2 AND G3 AND G4 AND G7 AND G8');
 
--- Insert data awal untuk pertanyaan hipotesis 4
-INSERT INTO question (hypothesis_id, code, text) VALUES
-(4, 'Q4-1', 'Saya lebih memilih bermain game online daripada berkumpul dengan teman-teman'),
-(4, 'Q4-2', 'Keluarga saya sering mengeluhkan waktu yang saya habiskan untuk bermain game'),
-(4, 'Q4-3', 'Saya pernah berkonflik dengan teman/keluarga karena masalah game online'),
-(4, 'Q4-4', 'Saya merasa lebih nyaman berinteraksi dengan teman online daripada teman di dunia nyata'),
-(4, 'Q4-5', 'Saya menolak ajakan kegiatan sosial karena ingin bermain game online');
+-- Insert rules untuk kecanduan berat (P3)
+INSERT INTO rule (hypothesis_id, rule_name, description) VALUES
+(3, 'Rule P3-1', 'IF P3 THEN G6 AND G9'),
+(3, 'Rule P3-2', 'IF P3 THEN G6 AND G9 AND G11'),
+(3, 'Rule P3-3', 'IF P3 THEN G6 AND G9 AND G11 AND G12'),
+(3, 'Rule P3-4', 'IF P3 THEN G6 AND G9 AND G11 AND G12 AND G2');
 
--- Insert data awal untuk pertanyaan hipotesis 5
-INSERT INTO question (hypothesis_id, code, text) VALUES
-(5, 'Q5-1', 'Saya sering menunda-nunda pekerjaan penting karena bermain game online'),
-(5, 'Q5-2', 'Waktu bermain game online saya semakin bertambah dari waktu ke waktu'),
-(5, 'Q5-3', 'Saya sering bermain game online lebih lama dari yang saya rencanakan'),
-(5, 'Q5-4', 'Saya merasa waktu produktif saya banyak terbuang karena bermain game online'),
-(5, 'Q5-5', 'Saya kesulitan mengatur jadwal kegiatan sehari-hari karena terlalu banyak bermain game');
+-- Insert rule_symptom relationships untuk kecanduan ringan
+INSERT INTO rule_symptom (rule_id, symptom_id) VALUES
+-- Rule P1-1: G1 AND G5
+(1, 1), (1, 5),
+-- Rule P1-2: G1 AND G5 AND G10
+(2, 1), (2, 5), (2, 10),
+-- Rule P1-3: G1 AND G5 AND G10 AND G3
+(3, 1), (3, 5), (3, 10), (3, 3);
+
+-- Insert rule_symptom relationships untuk kecanduan sedang
+INSERT INTO rule_symptom (rule_id, symptom_id) VALUES
+-- Rule P2-1: G2 AND G3 AND G4
+(4, 2), (4, 3), (4, 4),
+-- Rule P2-2: G2 AND G3 AND G4 AND G7
+(5, 2), (5, 3), (5, 4), (5, 7),
+-- Rule P2-3: G2 AND G3 AND G4 AND G7 AND G8
+(6, 2), (6, 3), (6, 4), (6, 7), (6, 8);
+
+-- Insert rule_symptom relationships untuk kecanduan berat
+INSERT INTO rule_symptom (rule_id, symptom_id) VALUES
+-- Rule P3-1: G6 AND G9
+(7, 6), (7, 9),  
+-- Rule P3-2: G6 AND G9 AND G11
+(8, 6), (8, 9), (8, 11),
+-- Rule P3-3: G6 AND G9 AND G11 AND G12
+(9, 6), (9, 9), (9, 11), (9, 12),
+-- Rule P3-4: G6 AND G9 AND G11 AND G12 AND G2
+(10, 6), (10, 9), (10, 11), (10, 12), (10, 2);
+
+-- Insert questions berdasarkan symptoms
+INSERT INTO question (symptom_id, text) VALUES
+(1, 'Apakah Anda selalu memikirkan game bahkan saat tidak sedang bermain?'),
+(2, 'Apakah Anda merasa gelisah, marah, atau cemas ketika tidak bisa bermain game?'),
+(3, 'Apakah Anda memerlukan waktu bermain yang semakin lama untuk merasa puas?'),
+(4, 'Apakah Anda gagal mengontrol durasi bermain meskipun sudah berusaha?'),
+(5, 'Apakah Anda kehilangan minat pada hobi atau aktivitas yang sebelumnya disukai?'),
+(6, 'Apakah Anda terus bermain game meskipun tahu konsekuensi negatifnya terhadap akademik, kesehatan, atau hubungan?'),
+(7, 'Apakah Anda berbohong tentang durasi bermain kepada keluarga atau teman?'),
+(8, 'Apakah Anda menggunakan game untuk melarikan diri dari mood negatif seperti stres atau depresi?'),
+(9, 'Apakah Anda mengorbankan hubungan, pekerjaan, atau studi demi bermain game?'),
+(10, 'Apakah Anda lebih memilih berinteraksi sosial di dalam game daripada di dunia nyata?'),
+(11, 'Apakah Anda mengalami masalah fisik seperti kelelahan, sakit mata, kurang tidur, atau lupa makan karena bermain game?'),
+(12, 'Apakah prestasi akademik atau kinerja Anda menurun karena bermain game?');
