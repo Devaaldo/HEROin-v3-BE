@@ -284,6 +284,33 @@ def get_hypotheses():
     hypotheses = Hypothesis.query.all()
     return jsonify([h.to_dict() for h in hypotheses])
 
+@app.route('/api/selected-hypothesis', methods=['POST'])
+def save_selected_hypothesis():
+    """Endpoint untuk menyimpan hipotesis yang dipilih user"""
+    try:
+        data = request.json
+        print(f"Received hypothesis data: {data}")  # Debug log
+        
+        # Validasi data
+        if not data.get('userId') or not data.get('hypothesisId'):
+            return jsonify({'error': 'UserId dan HypothesisId harus diisi'}), 400
+        
+        # Cek apakah hipotesis exists
+        hypothesis = Hypothesis.query.get(data['hypothesisId'])
+        if not hypothesis:
+            return jsonify({'error': 'Hipotesis tidak ditemukan'}), 404
+        
+        # Response sukses
+        return jsonify({
+            'message': 'Hipotesis berhasil dipilih',
+            'hypothesisId': data['hypothesisId'],
+            'hypothesisName': hypothesis.name
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in save_selected_hypothesis: {str(e)}")
+        return jsonify({'error': f'Terjadi kesalahan server: {str(e)}'}), 500
+
 @app.route('/api/questions/<hypothesis_id>', methods=['GET'])
 def get_questions(hypothesis_id):
     # Implementasi backward chaining - dapatkan gejala yang diperlukan
