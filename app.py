@@ -13,8 +13,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
-
-# Import modules yang sudah dipisah
 from models import db, User, Hypothesis, Symptom, Rule, RuleSymptom, Question, Result, Answer
 from backward_chaining import BackwardChaining
 from certainty_factor import calculate_certainty_factor, combine_certainty_factors
@@ -28,10 +26,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize database dengan models yang sudah diimport
 db.init_app(app)
-
-# ============================================================================
-# API ENDPOINTS - BERSIH TANPA DUPLIKASI
-# ============================================================================
 
 @app.route('/api/user-info', methods=['POST'])
 def save_user_info():
@@ -94,7 +88,6 @@ def save_selected_hypothesis():
 
 @app.route('/api/questions/<hypothesis_id>', methods=['GET'])
 def get_questions(hypothesis_id):
-    """Menggunakan BackwardChaining dari file terpisah"""
     bc = BackwardChaining(int(hypothesis_id))
     questions = bc.get_questions_for_hypothesis()
     return jsonify(questions)
@@ -299,10 +292,6 @@ def delete_result(result_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Terjadi kesalahan: {str(e)}'}), 500
-
-# ============================================================================
-# REPORT GENERATION - Menggunakan fungsi dari file terpisah jika perlu
-# ============================================================================
 
 @app.route('/api/download-report/<result_id>', methods=['GET'])
 def download_report(result_id):
