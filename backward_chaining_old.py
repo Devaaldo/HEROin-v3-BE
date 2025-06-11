@@ -1,5 +1,4 @@
 from models import db, Question, Rule, RuleSymptom, Hypothesis, Symptom
-from certainty_factor import combine_certainty_factors, calculate_symptom_cf
 
 class BackwardChaining:
     """
@@ -14,7 +13,7 @@ class BackwardChaining:
         self.hypothesis_id = hypothesis_id
         self.hypothesis = Hypothesis.query.get(hypothesis_id)
         
-        # Mapping rules berdasarkan penelitian - SESUAI DENGAN MIGRATIONS.SQL
+        # Mapping rules berdasarkan penelitian
         self.rules_mapping = {
             1: {  # P1 - Kecanduan Ringan
                 'rules': [
@@ -123,7 +122,7 @@ class BackwardChaining:
                     symptom = Symptom.query.filter_by(code=symptom_code).first()
                     if symptom:
                         # Hitung CF kombinasi: CF_pakar × CF_user
-                        cf_combined = calculate_symptom_cf(symptom.cf_expert, user_answers[symptom_code])
+                        cf_combined = symptom.cf_expert * user_answers[symptom_code]
                         rule_cf_values.append(cf_combined)
                 else:
                     all_symptoms_present = False
@@ -132,7 +131,7 @@ class BackwardChaining:
             # Jika semua gejala dalam rule terpenuhi
             if all_symptoms_present and rule_cf_values:
                 # Gabungkan CF untuk rule ini
-                rule_confidence = combine_certainty_factors(rule_cf_values)
+                rule_confidence = self._combine_rule_cf(rule_cf_values)
                 rule_confidences.append(rule_confidence)
                 matched_rules.append({
                     'rule_number': i + 1,
@@ -154,6 +153,25 @@ class BackwardChaining:
             'matched_rules': matched_rules,
             'total_rules_matched': len(matched_rules)
         }
+    
+    def _combine_rule_cf(self, cf_values):
+        """
+        Menggabungkan CF values dalam satu rule menggunakan rumus penelitian:
+        CF_gabungan = CF1 + CF2 × (1 - CF1)
+        """
+        if not cf_values:
+            return 0.0
+        
+        if len(cf_values) == 1:
+            return cf_values[0]
+        
+        combined_cf = cf_values[0]
+        
+        for i in range(1, len(cf_values)):
+            cf_next = cf_values[i]
+            combined_cf = combined_cf + (cf_next * (1 - combined_cf))
+        
+        return max(0.0, min(1.0, combined_cf))
     
     def get_diagnosis_recommendation(self, cf_percentage):
         """
@@ -202,7 +220,7 @@ class BackwardChaining:
                 user_answers[symptom.code] = response['cf_user']
                 
                 # Hitung CF kombinasi
-                cf_combined = calculate_symptom_cf(symptom.cf_expert, response['cf_user'])
+                cf_combined = symptom.cf_expert * response['cf_user']
                 
                 symptom_details.append({
                     'symptom_id': symptom.id,
