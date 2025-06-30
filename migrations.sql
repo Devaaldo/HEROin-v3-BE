@@ -1,4 +1,4 @@
--- migrations_updated.sql
+-- migrations.sql
 -- Script untuk membuat database dan tabel untuk sistem pakar HEROin (Updated)
 
 -- Buat database
